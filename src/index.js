@@ -6,16 +6,18 @@ const sound = require("./sound.js");
 
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
+const fragmentShader2 = require('webpack-glsl-loader!./glsl/fragmentShader2.frag');
 
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
 
 let scene, camera, clock, marchingCubes, renderer, light, pointLight, ambientLight;
+let groundGeometry;
 
 let blobsCount = 30;
 let updatingCubeSpeedOffset = 1.6;
-
-let groundGeometry;
+let groundVertexOffset = 3;
+let shouldChangeSceneTo2 = true;
 
 const uniform = {
     time: {
@@ -83,7 +85,6 @@ const init = () => {
     scene.add(mesh);
 
     // Blobs
-
     uniform.resolution = new THREE.Vector2(windowWidth, windowHeight);
     uniform.dirLightPos.value = light.position;
     uniform.dirLightColor.value = light.color;
@@ -137,7 +138,7 @@ const updateGround = (time) => {
         let y = 30 * Math.sin(i / 2 + (time * 5 + i));
 
         if (i % 14 === 0) {
-            y *= 3;
+            y *= groundVertexOffset;
         }
         position.setY(i, y);
     }
@@ -166,6 +167,29 @@ const render = () => {
     // light.position.z = cameraZ;
 
     uniform.time.value = time;
+
+    if (time > 8.0 && shouldChangeSceneTo2) {
+        scene.remove(marchingCubes);
+
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniform,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader2,
+        });
+
+        const resolution = 48;
+        marchingCubes = new THREE.MarchingCubes(resolution, material, true, true);
+        marchingCubes.position.set(0, 0, 0);
+        marchingCubes.scale.set(100, 100, 100);
+
+        scene.add(marchingCubes);
+
+        scene.background = new THREE.Color(0x4623DE);
+        scene.fog = new THREE.FogExp2(0x4623DE, 0.0003);
+
+        groundVertexOffset = 12;
+        shouldChangeSceneTo2 = false;
+    }
 
     renderer.render(scene, camera);
 
