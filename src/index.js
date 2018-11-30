@@ -3,6 +3,9 @@ import * as THREE from 'three';
 window.THREE = require("three");
 require("three/examples/js/MarchingCubes.js");
 
+const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
+const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
+
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
 
@@ -12,6 +15,29 @@ let blobsCount = 30;
 let updatingCubeSpeedOffset = 1.6;
 
 let groundGeometry;
+
+const uniform = {
+    time: {
+        type: 'f',
+        value: 1.0
+    },
+    resolution: {
+        type: "v2",
+        value: new THREE.Vector2()
+    },
+    dirLightPos: {
+        type: "v3",
+        value: new THREE.Vector3()
+    },
+    dirLightColor: {
+        type: "v3",
+        value: new THREE.Color(0xeeeeee)
+    },
+    ambientLightColor: {
+        type: "v3",
+        value: new THREE.Color(0x050505)
+    },
+};
 
 const init = () => {
     scene = new THREE.Scene();
@@ -26,7 +52,7 @@ const init = () => {
 
     // Light
     light = new THREE.DirectionalLight(0xffffff);
-    light.position.set(0, 0, 0);
+    light.position.set(0.0, -1.0, 0.0);
     scene.add(light);
 
     pointLight = new THREE.PointLight(0x00E4BB, 30, 150);
@@ -34,7 +60,7 @@ const init = () => {
     scene.add(pointLight);
 
     ambientLight = new THREE.AmbientLight(0x00E4BB);
-    ambientLight.position.set(0, -100, 0);
+    ambientLight.position.set(0, -1.0, 0);
     scene.add(ambientLight);
 
     // Ground
@@ -46,19 +72,29 @@ const init = () => {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(5, 5);
 
-    const material1 = new THREE.MeshBasicMaterial({
+    const groundMaterial = new THREE.MeshBasicMaterial({
         color: 0x00E4BB,
         map: texture,
     });
 
-    const mesh = new THREE.Mesh(groundGeometry, material1);
+    const mesh = new THREE.Mesh(groundGeometry, groundMaterial);
     mesh.position.set(0, -500, 0);
     scene.add(mesh);
 
     // Blobs
-    const resolution = 48;
-    const material = new THREE.MeshPhongMaterial({color: 0xff00ff, specular: 0x111111, shininess: 10});
 
+    uniform.resolution = new THREE.Vector2(windowWidth, windowHeight);
+    uniform.dirLightPos.value = light.position;
+    uniform.dirLightColor.value = light.color;
+    uniform.ambientLightColor.value = ambientLight.color;
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: uniform,
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+    });
+
+    const resolution = 48;
     marchingCubes = new THREE.MarchingCubes(resolution, material, true, true);
     marchingCubes.position.set(0, 0, 0);
     marchingCubes.scale.set(100, 100, 100);
@@ -123,8 +159,10 @@ const render = () => {
     camera.position.z = cameraZ;
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-    light.position.x = cameraX;
-    light.position.z = cameraZ;
+    // light.position.x = cameraX;
+    // light.position.z = cameraZ;
+
+    uniform.time.value = time;
 
     renderer.render(scene, camera);
 
