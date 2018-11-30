@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 window.THREE = require("three");
 require("three/examples/js/MarchingCubes.js");
+const sound = require("./sound.js");
 
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
@@ -110,6 +111,8 @@ const init = () => {
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
     renderer.autoClear = false;
+
+    sound.init();
 };
 
 const updateCubes = (object, time) => {
