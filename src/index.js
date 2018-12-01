@@ -9,8 +9,8 @@ const icosahedron = require("./icosahedron.js");
 
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
-const fragmentShader2 = require('webpack-glsl-loader!./glsl/fragmentShader2.frag');
-const metaballFragmentShader = require('webpack-glsl-loader!./glsl/metaballFragmentShader.frag');
+const obliqueLineFragmentShader = require('webpack-glsl-loader!./glsl/obliqueLineFragmentShader.frag');
+const summedWaveFragmentShader = require('webpack-glsl-loader!./glsl/summedWaveFragmentShader.frag');
 
 const particleVertexShader = require('webpack-glsl-loader!./glsl/particleVertexShader.vert');
 const particleFragmentShader = require('webpack-glsl-loader!./glsl/particleFragmentShader.frag');
@@ -261,7 +261,7 @@ const toScene3 = () => {
     const material = new THREE.ShaderMaterial({
         uniforms: uniform,
         vertexShader: vertexShader,
-        fragmentShader: metaballFragmentShader,
+        fragmentShader: summedWaveFragmentShader,
     });
 
     const resolution = 48;
@@ -279,7 +279,7 @@ const toScene3 = () => {
 };
 
 /**
- * Particles.
+ * Show particles and change shader.
  */
 const toScene4 = () => {
     scene.remove(marchingCubes);
@@ -287,7 +287,7 @@ const toScene4 = () => {
     const material1 = new THREE.ShaderMaterial({
         uniforms: uniform,
         vertexShader: vertexShader,
-        fragmentShader: fragmentShader2,
+        fragmentShader: obliqueLineFragmentShader,
     });
 
     const resolution = 48;
@@ -354,7 +354,7 @@ const toScene4 = () => {
 };
 
 /**
- * Icosahedron.
+ * Show icosahedron.
  */
 const toScene5 = () => {
     const objectRadius = 30;
