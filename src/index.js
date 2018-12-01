@@ -10,6 +10,9 @@ const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
 const fragmentShader2 = require('webpack-glsl-loader!./glsl/fragmentShader2.frag');
 
+const particleVertexShader = require('webpack-glsl-loader!./glsl/particleVertexShader.vert');
+const particleFragmentShader = require('webpack-glsl-loader!./glsl/particleFragmentShader.frag');
+
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
 
@@ -21,6 +24,9 @@ let updatingCubeSpeedOffset = 1.6;
 let groundVertexOffset = 3;
 let shouldChangeSceneTo2 = true;
 let shouldChangeSceneTo3 = true;
+let shouldChangeSceneTo4 = true;
+
+let particlePoints;
 
 const uniform = {
     time: {
@@ -42,6 +48,10 @@ const uniform = {
     ambientLightColor: {
         type: "v3",
         value: new THREE.Color(0x050505)
+    },
+    size: {
+        type: 'f',
+        value: 32.0
     },
 };
 
@@ -177,6 +187,8 @@ const render = (t) => {
         toScene2();
     } else if (time > 15.0 && shouldChangeSceneTo3) {
         toScene3();
+    } else if (time > 25.0 && shouldChangeSceneTo4) {
+        toScene4();
     }
 
     renderer.render(scene, camera);
@@ -184,6 +196,9 @@ const render = (t) => {
     requestAnimationFrame(render);
 };
 
+/**
+ * Show ground.
+ */
 const toScene2 = () => {
     const initialY = groundMesh.position.y;
     const targetY = -500;
@@ -204,6 +219,9 @@ const toScene2 = () => {
     shouldChangeSceneTo2 = false;
 };
 
+/**
+ * Change shader.
+ */
 const toScene3 = () => {
     scene.remove(marchingCubes);
 
@@ -226,6 +244,61 @@ const toScene3 = () => {
     groundMesh.position.set(0, -500, 0);
     groundVertexOffset = 12;
     shouldChangeSceneTo3 = false;
+};
+
+/**
+ * Particles.
+ */
+const toScene4 = () => {
+    let colorsPerFace = [
+        "#7BFFEF", "#6FE8B8", "#7FFFAC", "#6FE873", "#FFDEAA"
+    ];
+
+    const hexToRgb = (hex) => {
+        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return {
+            r: parseInt(result[1], 16) / 255,
+            g: parseInt(result[2], 16) / 255,
+            b: parseInt(result[3], 16) / 255
+        };
+    };
+
+    const vertices = [];
+    const colors = [];
+    const particleCount = 20000;
+
+    const geometry = new THREE.BufferGeometry();
+    const dist = window.innerWidth * 0.8;
+
+    for (let i = 0; i < particleCount; i++) {
+        const x = Math.floor(Math.random() * dist - dist / 2);
+        const y = Math.floor(Math.random() * dist - dist / 2);
+        const z = Math.floor(Math.random() * dist - dist / 2);
+        vertices.push(x, y, z);
+
+        const rgbColor = hexToRgb(colorsPerFace[Math.floor(Math.random() * colorsPerFace.length)]);
+        colors.push(rgbColor.r, rgbColor.g, rgbColor.b);
+    }
+
+    const verticesArray = new Float32Array(vertices);
+    geometry.addAttribute('position', new THREE.BufferAttribute(verticesArray, 3));
+
+    const colorsArray = new Float32Array(colors);
+    geometry.addAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+
+    const material = new THREE.ShaderMaterial({
+        uniforms: uniform,
+        vertexShader: particleVertexShader,
+        fragmentShader: particleFragmentShader,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    });
+
+    particlePoints = new THREE.Points(geometry, material);
+    scene.add(particlePoints);
+
+    shouldChangeSceneTo4 = false;
 };
 
 const onResize = () => {
