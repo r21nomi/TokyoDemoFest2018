@@ -10,6 +10,7 @@ const icosahedron = require("./icosahedron.js");
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
 const fragmentShader2 = require('webpack-glsl-loader!./glsl/fragmentShader2.frag');
+const metaballFragmentShader = require('webpack-glsl-loader!./glsl/metaballFragmentShader.frag');
 
 const particleVertexShader = require('webpack-glsl-loader!./glsl/particleVertexShader.vert');
 const particleFragmentShader = require('webpack-glsl-loader!./glsl/particleFragmentShader.frag');
@@ -173,6 +174,12 @@ const render = (t) => {
 
     updateCubes(marchingCubes, time * updatingCubeSpeedOffset);
 
+    if (!shouldChangeSceneTo3) {
+        marchingCubes.rotation.x = time;
+        marchingCubes.rotation.y = time;
+        marchingCubes.rotation.z = time;
+    }
+
     const speed = time * 30 * (Math.PI / 180);
     const cameraX = 300 * Math.sin(speed);
     const cameraZ = 300 * Math.cos(speed);
@@ -181,9 +188,6 @@ const render = (t) => {
     camera.position.y = cameraX * 0.3;
     camera.position.z = cameraZ;
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    // light.position.x = cameraX;
-    // light.position.z = cameraZ;
 
     uniform.time.value = time;
 
@@ -257,7 +261,7 @@ const toScene3 = () => {
     const material = new THREE.ShaderMaterial({
         uniforms: uniform,
         vertexShader: vertexShader,
-        fragmentShader: fragmentShader2,
+        fragmentShader: metaballFragmentShader,
     });
 
     const resolution = 48;
@@ -267,10 +271,9 @@ const toScene3 = () => {
 
     scene.add(marchingCubes);
 
-    scene.background = new THREE.Color(0x4623DE);
-    scene.fog = new THREE.FogExp2(0x4623DE, 0.0003);
+    scene.background = new THREE.Color(0x231B95);
+    scene.fog = new THREE.FogExp2(0x231B95, 0.0003);
 
-    groundMesh.position.set(0, -500, 0);
     groundVertexOffset = 12;
     shouldChangeSceneTo3 = false;
 };
@@ -279,6 +282,24 @@ const toScene3 = () => {
  * Particles.
  */
 const toScene4 = () => {
+    scene.remove(marchingCubes);
+
+    const material1 = new THREE.ShaderMaterial({
+        uniforms: uniform,
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader2,
+    });
+
+    const resolution = 48;
+    marchingCubes = new THREE.MarchingCubes(resolution, material1, true, true);
+    marchingCubes.position.set(0, 0, 0);
+    marchingCubes.scale.set(100, 100, 100);
+
+    scene.add(marchingCubes);
+
+    scene.background = new THREE.Color(0x4623DE);
+    scene.fog = new THREE.FogExp2(0x4623DE, 0.0003);
+
     let colorsPerFace = [
         "#7BFFEF", "#6FE8B8", "#7FFFAC", "#6FE873", "#FFDEAA"
     ];
@@ -315,7 +336,7 @@ const toScene4 = () => {
     const colorsArray = new Float32Array(colors);
     geometry.addAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
 
-    const material = new THREE.ShaderMaterial({
+    const material2 = new THREE.ShaderMaterial({
         uniforms: uniform,
         vertexShader: particleVertexShader,
         fragmentShader: particleFragmentShader,
@@ -324,7 +345,7 @@ const toScene4 = () => {
         blending: THREE.AdditiveBlending
     });
 
-    particlePoints = new THREE.Points(geometry, material);
+    particlePoints = new THREE.Points(geometry, material2);
     scene.add(particlePoints);
 
     updateBlobsCount(50, 5000);
