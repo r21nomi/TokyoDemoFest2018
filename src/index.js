@@ -5,6 +5,7 @@ require("three/examples/js/MarchingCubes.js");
 
 const TWEEN = require('@tweenjs/tween.js');
 const sound = require("./sound.js");
+const icosahedron = require("./icosahedron.js");
 
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
 const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
@@ -25,8 +26,11 @@ let groundVertexOffset = 3;
 let shouldChangeSceneTo2 = true;
 let shouldChangeSceneTo3 = true;
 let shouldChangeSceneTo4 = true;
+let shouldChangeSceneTo5 = true;
 
 let particlePoints;
+
+let icosahedronGroup = new THREE.Group();
 
 const uniform = {
     time: {
@@ -183,12 +187,37 @@ const render = (t) => {
 
     uniform.time.value = time;
 
-    if (time > 5.0 && shouldChangeSceneTo2) {
+    let len = icosahedronGroup.children.length;
+    if (len > 0) {
+        for (let i = 0; i < len; i++) {
+            let object = icosahedronGroup.children[i];
+
+            let geometry = object.geometry;
+            geometry.verticesNeedUpdate = true;
+
+            let originalVertices = icosahedron.originalVerticesArray[i];
+
+            for (let i = 0, len = geometry.vertices.length; i < len; i++) {
+                let t = time * 8 + i * 300;
+                let offset = 5;
+                geometry.vertices[i].x = originalVertices[i].x + Math.sin(t) * offset;
+                geometry.vertices[i].y = originalVertices[i].y + Math.sin(t * 0.8) * offset;
+            }
+            const t = time * 5 + (i % 4) * 50;
+            object.scale.x = 1.0 + Math.abs(Math.sin(t));
+            object.scale.y = 1.0 + Math.abs(Math.sin(t));
+            object.scale.z = 1.0 + Math.abs(Math.sin(t));
+        }
+    }
+
+    if (time > 5 && shouldChangeSceneTo2) {
         toScene2();
-    } else if (time > 15.0 && shouldChangeSceneTo3) {
+    } else if (time > 15 && shouldChangeSceneTo3) {
         toScene3();
-    } else if (time > 25.0 && shouldChangeSceneTo4) {
+    } else if (time > 25 && shouldChangeSceneTo4) {
         toScene4();
+    } else if (time > 35 && shouldChangeSceneTo5) {
+        toScene5();
     }
 
     renderer.render(scene, camera);
@@ -298,7 +327,44 @@ const toScene4 = () => {
     particlePoints = new THREE.Points(geometry, material);
     scene.add(particlePoints);
 
+    updateBlobsCount(50, 5000);
+
     shouldChangeSceneTo4 = false;
+};
+
+/**
+ * Icosahedron.
+ */
+const toScene5 = () => {
+    const objectRadius = 30;
+    const count = 18;
+    const dist = 600;
+
+    for (let i = 0; i < count; i++) {
+        const angle = 360 / count * Math.PI / 180 * i;
+
+        icosahedronGroup.add(icosahedron.createObject(objectRadius, {
+            x: Math.cos(angle) * dist,
+            y: 0,
+            z: Math.sin(angle) * dist
+        }));
+    }
+    scene.add(icosahedronGroup);
+
+    shouldChangeSceneTo5 = false;
+};
+
+const updateBlobsCount = (count, time) => {
+    const params = {
+        count: blobsCount
+    };
+    new TWEEN.Tween(params)
+        .to({count: count}, time)
+        .easing(TWEEN.Easing.Exponential.Out)
+        .onUpdate(function () {
+            blobsCount = Math.floor(params.count);
+        })
+        .start();
 };
 
 const onResize = () => {
