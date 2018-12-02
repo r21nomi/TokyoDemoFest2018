@@ -211,7 +211,7 @@ const render = (t) => {
                 geometry.vertices[i].x = originalVertices[i].x + Math.sin(t) * offset;
                 geometry.vertices[i].y = originalVertices[i].y + Math.sin(t * 0.8) * offset;
             }
-            const t = time * 5 + (i % 4) * 50;
+            const t = time * 5 + (i % 4) * 80;
             object.scale.x = 1.0 + Math.abs(Math.sin(t));
             object.scale.y = 1.0 + Math.abs(Math.sin(t));
             object.scale.z = 1.0 + Math.abs(Math.sin(t));

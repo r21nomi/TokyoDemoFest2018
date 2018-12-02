@@ -65,10 +65,10 @@ vec2 mainSound(float time) {
 
     float sidechain = smoothstep(0.0, 0.8, kickTime);
     ret += sidechain * 0.6 * vec2(
-            pad(chord( 0.0 ), time)
-          + pad(chord( 1.0 ), time)
-          + pad(chord( 2.0 ), time)
-          + pad(chord( 3.0 ), time)
+            pad(chord(0.0), time)
+          + pad(chord(1.0), time)
+          + pad(chord(2.0), time)
+          + pad(chord(3.0), time)
         ) / 4.0;
 
     if (time > 2.0) {
