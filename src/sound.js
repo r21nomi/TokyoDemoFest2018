@@ -2,14 +2,16 @@
 
 import * as THREE from 'three';
 
+let node;
+
 export const init = () => {
-    const DURATION = 30;
+    const DURATION = 90;
     const WIDTH = 512;
     const HEIGHT = 512;
     const fragmentShader = require('webpack-glsl-loader!./glsl/soundShader.frag');
 
     const ctx = new window.AudioContext();
-    const node = ctx.createBufferSource();
+    node = ctx.createBufferSource();
     node.connect(ctx.destination);
     node.loop = true;
 
@@ -67,4 +69,8 @@ export const init = () => {
 
     node.buffer = audioBuffer;
     node.start(0);
+};
+
+export const stop = () => {
+    node.stop();
 };

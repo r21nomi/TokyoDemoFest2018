@@ -28,6 +28,7 @@ let shouldChangeSceneTo2 = true;
 let shouldChangeSceneTo3 = true;
 let shouldChangeSceneTo4 = true;
 let shouldChangeSceneTo5 = true;
+let shouldChangeSceneTo6 = true;
 
 let particlePoints;
 
@@ -185,9 +186,12 @@ const render = (t) => {
     const cameraZ = 300 * Math.cos(speed);
 
     camera.position.x = cameraX;
-    camera.position.y = cameraX * 0.3;
     camera.position.z = cameraZ;
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    if (shouldChangeSceneTo6) {
+        camera.position.y = cameraX * 0.3;
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+    }
 
     uniform.time.value = time;
 
@@ -220,8 +224,10 @@ const render = (t) => {
         toScene3();
     } else if (time > 25 && shouldChangeSceneTo4) {
         toScene4();
-    } else if (time > 35 && shouldChangeSceneTo5) {
+    } else if (time > 30 && shouldChangeSceneTo5) {
         toScene5();
+    } else if (time > 40 && shouldChangeSceneTo6) {
+        toScene6();
     }
 
     renderer.render(scene, camera);
@@ -373,6 +379,30 @@ const toScene5 = () => {
     scene.add(icosahedronGroup);
 
     shouldChangeSceneTo5 = false;
+};
+
+const toScene6 = () => {
+    const coords = {
+        y: marchingCubes.position.y
+    };
+    new TWEEN.Tween(coords)
+        .to({y: 2000}, 8000)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate(function () {
+            marchingCubes.position.y = coords.y;
+            camera.position.y = coords.y;
+            particlePoints.position.y = coords.y;
+            camera.lookAt(new THREE.Vector3(0, coords.y, 0));
+        })
+        .onComplete(function () {
+            scene.remove(particlePoints);
+            sound.stop();
+        })
+        .start();
+
+    updateBlobsCount(0, 9000);
+
+    shouldChangeSceneTo6 = false;
 };
 
 const updateBlobsCount = (count, time) => {
