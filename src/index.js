@@ -4,13 +4,9 @@ window.THREE = require("three");
 require("three/examples/js/MarchingCubes.js");
 
 const TWEEN = require('@tweenjs/tween.js');
-const sound = require("./sound.js");
-const icosahedron = require("./icosahedron.js");
 
 const vertexShader = require('webpack-glsl-loader!./glsl/vertexShader.vert');
-const fragmentShader = require('webpack-glsl-loader!./glsl/fragmentShader.frag');
 const obliqueLineFragmentShader = require('webpack-glsl-loader!./glsl/obliqueLineFragmentShader.frag');
-const summedWaveFragmentShader = require('webpack-glsl-loader!./glsl/summedWaveFragmentShader.frag');
 
 const particleVertexShader = require('webpack-glsl-loader!./glsl/particleVertexShader.vert');
 const particleFragmentShader = require('webpack-glsl-loader!./glsl/particleFragmentShader.frag');
@@ -24,15 +20,16 @@ let groundGeometry, groundMesh;
 let blobsCount = 30;
 let updatingCubeSpeedOffset = 1.6;
 let groundVertexOffset = 3;
-let shouldChangeSceneTo2 = true;
-let shouldChangeSceneTo3 = true;
-let shouldChangeSceneTo4 = true;
-let shouldChangeSceneTo5 = true;
-let shouldChangeSceneTo6 = true;
 
 let particlePoints;
 
 let icosahedronGroup = new THREE.Group();
+
+const colorsPerFace = [
+    0x20D8D6, 0x31A3A2, 0x53B9B8, 0x71BCBB, 0xA3DAD9
+];
+
+const icosahedronOriginalVerticesArray = [];
 
 const uniform = {
     time: {
@@ -100,7 +97,7 @@ const init = () => {
     });
 
     groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
-    groundMesh.position.set(0, -3000, 0);
+    groundMesh.position.set(0, -500, 0);
     scene.add(groundMesh);
 
     // Blobs
@@ -112,7 +109,7 @@ const init = () => {
     const material = new THREE.ShaderMaterial({
         uniforms: uniform,
         vertexShader: vertexShader,
-        fragmentShader: fragmentShader,
+        fragmentShader: obliqueLineFragmentShader,
     });
 
     const resolution = 48;
@@ -132,7 +129,8 @@ const init = () => {
     renderer.gammaOutput = true;
     renderer.autoClear = false;
 
-    sound.init();
+    addParticles();
+    addIcosahedrons();
 };
 
 const updateCubes = (object, time) => {
@@ -175,11 +173,9 @@ const render = (t) => {
 
     updateCubes(marchingCubes, time * updatingCubeSpeedOffset);
 
-    if (!shouldChangeSceneTo3) {
-        marchingCubes.rotation.x = time;
-        marchingCubes.rotation.y = time;
-        marchingCubes.rotation.z = time;
-    }
+    marchingCubes.rotation.x = time;
+    marchingCubes.rotation.y = time;
+    marchingCubes.rotation.z = time;
 
     const speed = time * 30 * (Math.PI / 180);
     const cameraX = 300 * Math.sin(speed);
@@ -187,11 +183,8 @@ const render = (t) => {
 
     camera.position.x = cameraX;
     camera.position.z = cameraZ;
-
-    if (shouldChangeSceneTo6) {
-        camera.position.y = cameraX * 0.3;
-        camera.lookAt(new THREE.Vector3(0, 0, 0));
-    }
+    camera.position.y = cameraX * 0.3;
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     uniform.time.value = time;
 
@@ -203,7 +196,7 @@ const render = (t) => {
             let geometry = object.geometry;
             geometry.verticesNeedUpdate = true;
 
-            let originalVertices = icosahedron.originalVerticesArray[i];
+            let originalVertices = icosahedronOriginalVerticesArray[i];
 
             for (let i = 0, len = geometry.vertices.length; i < len; i++) {
                 let t = time * 8 + i * 300;
@@ -218,76 +211,12 @@ const render = (t) => {
         }
     }
 
-    if (time > 5 && shouldChangeSceneTo2) {
-        toScene2();
-    } else if (time > 15 && shouldChangeSceneTo3) {
-        toScene3();
-    } else if (time > 25 && shouldChangeSceneTo4) {
-        toScene4();
-    } else if (time > 30 && shouldChangeSceneTo5) {
-        toScene5();
-    } else if (time > 40 && shouldChangeSceneTo6) {
-        toScene6();
-    }
-
     renderer.render(scene, camera);
 
     requestAnimationFrame(render);
 };
 
-/**
- * Show ground.
- */
-const toScene2 = () => {
-    const initialY = groundMesh.position.y;
-    const targetY = -500;
-    const coords = {
-        x: 0,
-        y: initialY,
-        z: 0
-    };
-    new TWEEN.Tween(coords)
-        .to({x: 0, y: targetY, z: 0}, 3000)
-        .easing(TWEEN.Easing.Exponential.Out)
-        .onUpdate(function () {
-            groundMesh.position.y = coords.y;
-            light.position.y = (initialY - coords.y) / (targetY - initialY);  // Finally y become -1.0.
-        })
-        .start();
-
-    shouldChangeSceneTo2 = false;
-};
-
-/**
- * Change shader.
- */
-const toScene3 = () => {
-    scene.remove(marchingCubes);
-
-    const material = new THREE.ShaderMaterial({
-        uniforms: uniform,
-        vertexShader: vertexShader,
-        fragmentShader: summedWaveFragmentShader,
-    });
-
-    const resolution = 48;
-    marchingCubes = new THREE.MarchingCubes(resolution, material, true, true);
-    marchingCubes.position.set(0, 0, 0);
-    marchingCubes.scale.set(100, 100, 100);
-
-    scene.add(marchingCubes);
-
-    scene.background = new THREE.Color(0x231B95);
-    scene.fog = new THREE.FogExp2(0x231B95, 0.0003);
-
-    groundVertexOffset = 12;
-    shouldChangeSceneTo3 = false;
-};
-
-/**
- * Show particles and change shader.
- */
-const toScene4 = () => {
+const addParticles = () => {
     scene.remove(marchingCubes);
 
     const material1 = new THREE.ShaderMaterial({
@@ -353,16 +282,12 @@ const toScene4 = () => {
 
     particlePoints = new THREE.Points(geometry, material2);
     scene.add(particlePoints);
-
-    updateBlobsCount(50, 5000);
-
-    shouldChangeSceneTo4 = false;
 };
 
 /**
  * Show icosahedron.
  */
-const toScene5 = () => {
+const addIcosahedrons = () => {
     const objectRadius = 30;
     const count = 18;
     const dist = 600;
@@ -370,52 +295,46 @@ const toScene5 = () => {
     for (let i = 0; i < count; i++) {
         const angle = 360 / count * Math.PI / 180 * i;
 
-        icosahedronGroup.add(icosahedron.createObject(objectRadius, {
+        icosahedronGroup.add(createIcosahedron(objectRadius, {
             x: Math.cos(angle) * dist,
             y: 0,
             z: Math.sin(angle) * dist
         }));
     }
     scene.add(icosahedronGroup);
-
-    shouldChangeSceneTo5 = false;
 };
 
-const toScene6 = () => {
-    const coords = {
-        y: marchingCubes.position.y
-    };
-    new TWEEN.Tween(coords)
-        .to({y: 2000}, 8000)
-        .easing(TWEEN.Easing.Linear.None)
-        .onUpdate(function () {
-            marchingCubes.position.y = coords.y;
-            camera.position.y = coords.y;
-            particlePoints.position.y = coords.y;
-            camera.lookAt(new THREE.Vector3(0, coords.y, 0));
-        })
-        .onComplete(function () {
-            scene.remove(particlePoints);
-            sound.stop();
-        })
-        .start();
+const createIcosahedron = (radius, position) => {
+    let originalVertices = [];
+    let geometry = new THREE.IcosahedronGeometry(radius);
 
-    updateBlobsCount(0, 9000);
+    for (let i = 0, len = geometry.faces.length; i < len; i++) {
+        let face = geometry.faces[i];
+        face.color.setHex(colorsPerFace[Math.floor(Math.random() * colorsPerFace.length)]);
+    }
 
-    shouldChangeSceneTo6 = false;
-};
+    for (let i = 0, len = geometry.vertices.length; i < len; i++) {
+        let vertex = geometry.vertices[i];
 
-const updateBlobsCount = (count, time) => {
-    const params = {
-        count: blobsCount
-    };
-    new TWEEN.Tween(params)
-        .to({count: count}, time)
-        .easing(TWEEN.Easing.Exponential.Out)
-        .onUpdate(function () {
-            blobsCount = Math.floor(params.count);
-        })
-        .start();
+        originalVertices.push({
+            x: vertex.x,
+            y: vertex.y
+        });
+    }
+
+    let material = new THREE.MeshBasicMaterial({
+        vertexColors: THREE.FaceColors
+    });
+
+    let obj = new THREE.Mesh(geometry, material);
+    obj.position.x = position.x;
+    obj.position.y = position.y;
+    obj.position.z = position.z;
+    obj.castShadow = true;
+
+    icosahedronOriginalVerticesArray.push(originalVertices);
+
+    return obj;
 };
 
 const onResize = () => {
